@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FSI — フェデラツィオーネ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;700;900&family=Noto+Sans+JP:wght@100;300;400&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --blood:#ad0013;
+  --gold:#a67d43;
+  --void:#121312;
+  --ash:#1a1a18;
+  --text:rgba(255,255,255,0.88);
+  --dim:rgba(255,255,255,0.38);
+  --gold-dim:rgba(166,125,67,0.18);
+  --blood-dim:rgba(173,0,19,0.15);
+}
+html{scroll-behavior:smooth}
+body{background:var(--void);color:var(--text);font-family:'Noto Sans JP',sans-serif;font-weight:300;overflow-x:hidden;cursor:none}
+
+/* GRAIN */
+#grain{position:fixed;inset:0;pointer-events:none;z-index:9000;opacity:0.07;mix-blend-mode:screen}
+
+/* SCANLINES */
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.06) 3px,rgba(0,0,0,0.06) 4px);pointer-events:none;z-index:8999}
+
+/* CURSOR */
+.tc-wrap{position:fixed;top:0;left:0;width:0;height:0;pointer-events:none;z-index:99999;mix-blend-mode:difference;transform:translate(-50%,-50%)}
+.tc-dot{position:absolute;left:50%;top:50%;width:5px;height:5px;background:#fff;border-radius:50%;transform:translate(-50%,-50%)}
+.tc-corner{position:absolute;left:50%;top:50%;width:13px;height:13px;border:2px solid #fff}
+.tc-tl{transform:translate(-150%,-150%);border-right:none;border-bottom:none}
+.tc-tr{transform:translate(50%,-150%);border-left:none;border-bottom:none}
+.tc-br{transform:translate(50%,50%);border-left:none;border-top:none}
+.tc-bl{transform:translate(-150%,50%);border-right:none;border-top:none}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:1.4rem 3rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(166,125,67,0.12);background:linear-gradient(to bottom,rgba(18,19,18,0.97) 0%,rgba(18,19,18,0) 100%)}
+.logo{font-family:'Zen Old Mincho',serif;font-weight:900;font-size:1.9rem;color:var(--blood);letter-spacing:0.35em;text-shadow:0 0 28px rgba(173,0,19,0.55),0 0 60px rgba(173,0,19,0.2)}
+.logo span{display:block;font-family:'Noto Sans JP',sans-serif;font-weight:100;font-size:0.6rem;color:var(--gold);letter-spacing:0.7em;margin-top:-0.2rem;opacity:0.75}
+.nav-links{display:flex;gap:3rem;list-style:none}
+.nav-links a{color:var(--dim);text-decoration:none;font-family:'Share Tech Mono',monospace;font-size:0.72rem;letter-spacing:0.22em;text-transform:uppercase;transition:color 0.3s;position:relative}
+.nav-links a::before{content:attr(data-jp);display:block;font-family:'Noto Sans JP',sans-serif;font-size:0.55rem;color:var(--gold);letter-spacing:0.08em;opacity:0.55;margin-bottom:0.08rem}
+.nav-links a:hover{color:#fff}
+.nav-right{font-family:'Share Tech Mono',monospace;font-size:0.68rem;color:var(--dim);letter-spacing:0.18em}
+.nav-right span{color:var(--gold);opacity:0.8}
+
+/* HERO */
+#hero{position:relative;height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 50%,rgba(173,0,19,0.12) 0%,transparent 65%)}
+#three-c{position:absolute;inset:0;width:100%;height:100%}
+.hero-content{position:relative;z-index:10;text-align:center;pointer-events:none}
+.hero-eyebrow{font-family:'Noto Sans JP',sans-serif;font-weight:100;font-size:0.7rem;letter-spacing:0.7em;color:var(--gold);opacity:0.65;margin-bottom:1.8rem;text-transform:uppercase}
+.hero-sub{font-family:'Share Tech Mono',monospace;font-size:0.65rem;letter-spacing:0.42em;color:var(--dim);margin-top:1.8rem;line-height:2}
+.hero-sub em{color:var(--blood);font-style:normal}
+
+/* Floating kanji */
+.jp-float{position:absolute;font-family:'Zen Old Mincho',serif;font-weight:900;color:rgba(166,125,67,0.1);line-height:1;pointer-events:none;animation:jfloat 22s ease-in-out infinite}
+@keyframes jfloat{0%,100%{transform:translateY(0) rotate(-4deg);opacity:0.1}50%{transform:translateY(-28px) rotate(4deg);opacity:0.22}}
+
+/* Corner deco */
+.cdeco{position:absolute;width:55px;height:55px;opacity:0.5}
+.cdeco.tl{top:2rem;left:2rem;border-top:1px solid var(--gold);border-left:1px solid var(--gold)}
+.cdeco.tr{top:2rem;right:2rem;border-top:1px solid var(--gold);border-right:1px solid var(--gold)}
+.cdeco.bl{bottom:2rem;left:2rem;border-bottom:1px solid var(--gold);border-left:1px solid var(--gold)}
+.cdeco.br{bottom:2rem;right:2rem;border-bottom:1px solid var(--gold);border-right:1px solid var(--gold)}
+
+/* Hero accent lines */
+.h-line{position:absolute;top:50%;height:1px;width:140px;background:linear-gradient(to right,transparent,var(--blood),transparent);animation:hlinepulse 3s ease-in-out infinite}
+.h-line.l{right:calc(50% + 180px);animation-delay:0s}
+.h-line.r{left:calc(50% + 180px);animation-delay:0.6s}
+@keyframes hlinepulse{0%,100%{opacity:0.35;transform:scaleX(1)}50%{opacity:0.9;transform:scaleX(1.18)}}
+
+.scroll-hint{position:absolute;bottom:2.5rem;left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:0.58rem;letter-spacing:0.45em;color:var(--dim);z-index:10;text-align:center;animation:shpulse 2.5s ease-in-out infinite}
+.scroll-hint::after{content:'';display:block;width:1px;height:44px;background:linear-gradient(to bottom,var(--gold),transparent);margin:0.7rem auto 0;animation:shline 2.5s ease-in-out infinite}
+@keyframes shpulse{0%,100%{opacity:0.25}50%{opacity:0.7}}
+@keyframes shline{0%{transform:scaleY(0);transform-origin:top}60%{transform:scaleY(1);transform-origin:top}100%{transform:scaleY(0);transform-origin:bottom}}
+
+/* SECTIONS */
+section{position:relative;overflow:hidden}
+.s-inner{position:relative;padding:8rem 7rem;max-width:1440px;margin:0 auto}
+.s-tag{font-family:'Share Tech Mono',monospace;font-size:0.62rem;letter-spacing:0.42em;color:var(--blood);text-transform:uppercase;margin-bottom:0.4rem}
+.s-jp{font-family:'Noto Sans JP',sans-serif;font-weight:100;font-size:0.72rem;color:var(--gold);letter-spacing:0.35em;margin-bottom:1.8rem;opacity:0.7}
+.s-title{font-family:'Zen Old Mincho',serif;font-weight:700;font-size:clamp(2.8rem,5vw,5.5rem);line-height:1.05;letter-spacing:0.04em;margin-bottom:2rem}
+.s-title em{font-style:normal;color:var(--blood)}
+.s-body{font-family:'Noto Sans JP',sans-serif;font-weight:300;font-size:0.93rem;line-height:2.1;color:var(--dim);max-width:580px}
+.redline{width:55px;height:2px;background:var(--blood);margin-bottom:2rem;box-shadow:0 0 18px rgba(173,0,19,0.6)}
+
+/* ABOUT */
+#about{background:var(--void);border-top:1px solid rgba(166,125,67,0.12)}
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:8rem;align-items:center}
+.about-vis{position:relative;height:480px;border:1px solid rgba(166,125,67,0.18);background:linear-gradient(135deg,rgba(173,0,19,0.06),transparent 60%,rgba(166,125,67,0.06))}
+.big-kanji{position:absolute;font-family:'Zen Old Mincho',serif;font-weight:900;font-size:22rem;color:rgba(173,0,19,0.04);top:50%;left:50%;transform:translate(-50%,-50%);user-select:none;line-height:1;pointer-events:none}
+.vis-stats{position:absolute;bottom:2.5rem;left:2.5rem;display:flex;gap:3rem}
+.stat-num{font-family:'Share Tech Mono',monospace;font-size:2.8rem;color:var(--gold);line-height:1;display:block}
+.stat-lbl{font-size:0.6rem;letter-spacing:0.3em;color:var(--dim);text-transform:uppercase;margin-top:0.3rem;display:block}
+.vis-tag{position:absolute;top:2rem;right:2rem;font-family:'Share Tech Mono',monospace;font-size:0.58rem;color:rgba(173,0,19,0.5);letter-spacing:0.2em;border:1px solid rgba(173,0,19,0.2);padding:0.4rem 0.8rem}
+/* Vertical text deco */
+.vert-jp{position:absolute;right:2rem;top:50%;transform:translateY(-50%);font-family:'Noto Sans JP',sans-serif;font-weight:100;font-size:0.8rem;color:rgba(166,125,67,0.25);letter-spacing:0.4em;writing-mode:vertical-rl;text-orientation:mixed;letter-spacing:1em}
+
+/* COMMUNITY */
+#community{background:linear-gradient(to bottom,var(--void),#0c0c0a)}
+.comm-head{text-align:center;margin-bottom:6rem}
+.redline.c{margin:1rem auto 2rem}
+.card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(166,125,67,0.1)}
+.card{background:var(--void);padding:3rem 2.8rem;position:relative;cursor:pointer;overflow:hidden;transition:background 0.5s}
+.card.cursor-target:hover{background:rgba(173,0,19,0.04)}
+.card::before{content:'';position:absolute;top:0;left:0;width:2px;height:0;background:var(--blood);transition:height 0.5s ease}
+.card:hover::before{height:100%}
+.card::after{content:'';position:absolute;bottom:0;right:0;width:0;height:1px;background:var(--gold);opacity:0.4;transition:width 0.5s ease}
+.card:hover::after{width:100%}
+.card-num{font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--blood);letter-spacing:0.3em;margin-bottom:1.4rem}
+.card-jp{font-family:'Noto Sans JP',sans-serif;font-weight:100;font-size:0.68rem;color:var(--gold);letter-spacing:0.2em;margin-bottom:0.4rem;opacity:0.7}
+.card-title{font-family:'Zen Old Mincho',serif;font-size:1.45rem;font-weight:700;margin-bottom:1rem}
+.card-txt{font-size:0.83rem;line-height:1.9;color:var(--dim)}
+
+/* EVENTS */
+#events{background:#0c0c0a;border-top:1px solid rgba(173,0,19,0.18)}
+.ev-head{text-align:center;margin-bottom:5rem}
+.ev-list{max-width:940px;margin:0 auto}
+.ev-item{display:grid;grid-template-columns:110px 1fr auto;gap:3rem;align-items:center;padding:2.2rem 0;border-bottom:1px solid rgba(255,255,255,0.04);transition:padding 0.3s,border-color 0.3s;cursor:pointer}
+.ev-item.cursor-target:hover{padding-left:1.4rem;border-bottom-color:rgba(173,0,19,0.3)}
+.ev-day{font-family:'Share Tech Mono',monospace;text-align:center}
+.ev-day-num{font-size:3rem;color:var(--blood);line-height:1;display:block;text-shadow:0 0 25px rgba(173,0,19,0.4)}
+.ev-day-mo{font-size:0.62rem;letter-spacing:0.3em;color:var(--dim);text-transform:uppercase;display:block}
+.ev-title{font-family:'Zen Old Mincho',serif;font-size:1.12rem;font-weight:700;margin-bottom:0.35rem}
+.ev-loc{font-size:0.73rem;color:var(--gold);letter-spacing:0.2em;opacity:0.8}
+.ev-badge{font-family:'Share Tech Mono',monospace;font-size:0.58rem;padding:0.42rem 1.1rem;border:1px solid var(--blood);color:var(--blood);letter-spacing:0.2em;text-transform:uppercase;white-space:nowrap}
+
+/* JOIN */
+#join{background:var(--void);text-align:center;padding:12rem 6rem;position:relative}
+#join::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 70% at 50% 50%,rgba(173,0,19,0.07) 0%,transparent 70%);pointer-events:none}
+.join-eyebrow{font-family:'Noto Sans JP',sans-serif;font-weight:100;font-size:0.75rem;color:var(--gold);letter-spacing:0.55em;margin-bottom:1.5rem;opacity:0.65}
+.join-title{font-family:'Zen Old Mincho',serif;font-weight:900;font-size:clamp(4rem,9vw,10rem);line-height:0.9;margin-bottom:2.5rem;background:linear-gradient(135deg,#fff 0%,var(--gold) 45%,var(--blood) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.join-jp{font-family:'Noto Sans JP',sans-serif;font-weight:100;font-size:0.9rem;color:var(--dim);letter-spacing:0.5em;margin-bottom:4.5rem;line-height:2.5}
+.btn{display:inline-block;padding:1.3rem 4.5rem;background:transparent;border:1px solid var(--blood);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:0.78rem;letter-spacing:0.42em;text-transform:uppercase;text-decoration:none;position:relative;overflow:hidden;transition:color 0.4s;cursor:pointer}
+.btn::before{content:'';position:absolute;inset:0;background:var(--blood);transform:translateX(-100%);transition:transform 0.45s cubic-bezier(0.76,0,0.24,1)}
+.btn:hover::before{transform:translateX(0)}
+.btn span{position:relative;z-index:1}
+
+/* FOOTER */
+footer{background:#0a0a09;padding:4rem 5rem;border-top:1px solid rgba(166,125,67,0.15);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:2rem}
+.footer-logo{font-family:'Zen Old Mincho',serif;font-size:2.2rem;font-weight:900;color:var(--blood);letter-spacing:0.35em;text-shadow:0 0 20px rgba(173,0,19,0.4)}
+.footer-jp{font-family:'Noto Sans JP',sans-serif;font-weight:100;font-size:0.72rem;color:var(--dim);letter-spacing:0.35em;text-align:center;line-height:2.2}
+.footer-meta{font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--dim);letter-spacing:0.2em;text-align:right;line-height:2}
+
+/* REVEAL */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity 0.9s ease,transform 0.9s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-left{opacity:0;transform:translateX(-30px);transition:opacity 0.9s ease,transform 0.9s ease}
+.reveal-left.visible{opacity:1;transform:translateX(0)}
+
+/* GradualBlur host */
+.gb{position:relative;overflow:hidden}
+</style>
+</head>
+<body>
+
+<canvas id="grain"></canvas>
+<div class="tc-wrap" id="tc">
+  <div class="tc-dot"></div>
+  <div class="tc-corner tc-tl"></div>
+  <div class="tc-corner tc-tr"></div>
+  <div class="tc-corner tc-br"></div>
+  <div class="tc-corner tc-bl"></div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">FSI<span>フェデラツィオーネ</span></div>
+  <ul class="nav-links">
+    <li><a href="#about" data-jp="について" class="cursor-target">Chi Siamo</a></li>
+    <li><a href="#community" data-jp="コミュニティ" class="cursor-target">Comunità</a></li>
+    <li><a href="#events" data-jp="イベント" class="cursor-target">Eventi</a></li>
+    <li><a href="#join" data-jp="参加する" class="cursor-target">Unisciti</a></li>
+  </ul>
+  <div class="nav-right"><span id="clock">--:--:--</span>&nbsp;JST</div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div id="hero-bg"></div>
+  <canvas id="three-c"></canvas>
+
+  <!-- Floating kanji -->
+  <div class="jp-float" style="top:14%;left:7%;font-size:9rem;animation-delay:-4s">絆</div>
+  <div class="jp-float" style="top:18%;right:9%;font-size:6.5rem;animation-delay:-9s">力</div>
+  <div class="jp-float" style="bottom:22%;left:11%;font-size:5.5rem;animation-delay:-13s;color:rgba(173,0,19,0.1)">道</div>
+  <div class="jp-float" style="bottom:18%;right:7%;font-size:8rem;animation-delay:-3s">志</div>
+  <div class="jp-float" style="top:48%;left:2%;font-size:4.5rem;animation-delay:-7s;color:rgba(173,0,19,0.1)">魂</div>
+  <div class="jp-float" style="top:38%;right:2.5%;font-size:4rem;animation-delay:-11s;color:rgba(166,125,67,0.08)">火</div>
+
+  <div class="cdeco tl"></div>
+  <div class="cdeco tr"></div>
+  <div class="cdeco bl"></div>
+  <div class="cdeco br"></div>
+  <div class="h-line l"></div>
+  <div class="h-line r"></div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">フェデラツィオーネ &nbsp;·&nbsp; コミュニティ &nbsp;·&nbsp; イタリア</div>
+    <div class="hero-sub">
+      // SISTEMA ATTIVO&nbsp;&nbsp;—&nbsp;&nbsp;識別システム起動中&nbsp;&nbsp;—&nbsp;&nbsp;<em>2024</em>
+    </div>
+  </div>
+  <div class="scroll-hint">スクロール &nbsp;/&nbsp; SCORRI</div>
+</section>
+
+<!-- ABOUT -->
+<section id="about" class="gb">
+  <div class="s-inner">
+    <div class="about-grid">
+      <div class="reveal-left">
+        <div class="s-tag">// 001 — IDENTITÀ</div>
+        <div class="s-jp">私たちについて</div>
+        <div class="redline"></div>
+        <h2 class="s-title">Chi<br>Siamo <em>FSI</em></h2>
+        <p class="s-body">FSI è una comunità italiana nata dall'incontro tra la cultura orientale e le radici italiane. Un punto di riferimento per chi cerca connessione, crescita e appartenenza.<br><br>
+        日本とイタリア — due culture, un'anima comune. Fondata sulla passione per il Giappone e l'orgoglio italiano, FSI unisce persone che condividono valori di rispetto, onore e continua ricerca di sé.<br><br>
+        <span style="color:var(--gold);letter-spacing:0.2em;font-size:0.8rem">仲間たちと共に前進する。</span></p>
+      </div>
+      <div class="about-vis reveal" style="transition-delay:0.25s">
+        <div class="big-kanji">絆</div>
+        <div class="vis-tag">FSI-CORE&nbsp;//&nbsp;識別</div>
+        <div class="vert-jp">日本とイタリア</div>
+        <div class="vis-stats">
+          <div><span class="stat-num">1.2K</span><span class="stat-lbl">メンバー</span></div>
+          <div><span class="stat-num">47</span><span class="stat-lbl">イベント</span></div>
+          <div><span class="stat-num">12</span><span class="stat-lbl">都市</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMMUNITY -->
+<section id="community" class="gb">
+  <div class="s-inner">
+    <div class="comm-head reveal">
+      <div class="s-tag">// 002 — RETE</div>
+      <div class="s-jp">コミュニティの柱</div>
+      <div class="redline c"></div>
+      <h2 class="s-title" style="font-size:clamp(2rem,4vw,4rem)">I Pilastri della <em>Comunità</em></h2>
+    </div>
+    <div class="card-grid">
+      <div class="card cursor-target reveal" style="transition-delay:0.1s">
+        <div class="card-num">01 ——</div>
+        <div class="card-jp">文化交流</div>
+        <div class="card-title">Cultura & Scambio</div>
+        <p class="card-txt">Eventi culturali, workshop e incontri che uniscono la tradizione giapponese con l'identità italiana. Un ponte tra due mondi lontani ma vicini nell'anima.</p>
+      </div>
+      <div class="card cursor-target reveal" style="transition-delay:0.2s">
+        <div class="card-num">02 ——</div>
+        <div class="card-jp">武道の精神</div>
+        <div class="card-title">Arti Marziali</div>
+        <p class="card-txt">Allenamenti, tornei e corsi dedicati alle discipline tradizionali giapponesi in tutta Italia. 武道を通じた成長 — crescita attraverso le arti marziali.</p>
+      </div>
+      <div class="card cursor-target reveal" style="transition-delay:0.3s">
+        <div class="card-num">03 ——</div>
+        <div class="card-jp">仲間のネットワーク</div>
+        <div class="card-title">Rete di Connessioni</div>
+        <p class="card-txt">Un network attivo di professionisti, appassionati e famiglie unite dalla passione per il Giappone e dall'orgoglio di essere italiani.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EVENTS -->
+<section id="events" class="gb">
+  <div class="s-inner">
+    <div class="ev-head reveal">
+      <div class="s-tag">// 003 — CALENDARIO</div>
+      <div class="s-jp">次のイベント一覧</div>
+      <div class="redline c"></div>
+      <h2 class="s-title" style="font-size:clamp(2rem,4vw,4rem)">Prossimi <em>Eventi</em></h2>
+    </div>
+    <div class="ev-list">
+      <div class="ev-item cursor-target reveal">
+        <div class="ev-day"><span class="ev-day-num">14</span><span class="ev-day-mo">GIU 六月</span></div>
+        <div><div class="ev-title">Torneo Nazionale FSI — 全国大会</div><div class="ev-loc">↗&nbsp; Milano, Fiera Internazionale</div></div>
+        <div class="ev-badge">Torneo</div>
+      </div>
+      <div class="ev-item cursor-target reveal" style="transition-delay:0.1s">
+        <div class="ev-day"><span class="ev-day-num">28</span><span class="ev-day-mo">GIU 六月</span></div>
+        <div><div class="ev-title">Hanami Festival Italia — 花見</div><div class="ev-loc">↗&nbsp; Roma, Villa Borghese</div></div>
+        <div class="ev-badge">Festival</div>
+      </div>
+      <div class="ev-item cursor-target reveal" style="transition-delay:0.2s">
+        <div class="ev-day"><span class="ev-day-num">12</span><span class="ev-day-mo">LUG 七月</span></div>
+        <div><div class="ev-title">Summer Camp FSI — サマーキャンプ</div><div class="ev-loc">↗&nbsp; Firenze, Centro Sportivo</div></div>
+        <div class="ev-badge">Camp</div>
+      </div>
+      <div class="ev-item cursor-target reveal" style="transition-delay:0.3s">
+        <div class="ev-day"><span class="ev-day-num">03</span><span class="ev-day-mo">AGO 八月</span></div>
+        <div><div class="ev-title">Night of the Masters — 師匠の夜</div><div class="ev-loc">↗&nbsp; Napoli, Teatro San Carlo</div></div>
+        <div class="ev-badge">Gala</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- JOIN -->
+<section id="join">
+  <div class="reveal">
+    <div class="join-eyebrow">参加する — ENTRA NEL SISTEMA</div>
+    <h2 class="join-title">Entra<br>in FSI</h2>
+    <div class="join-jp">コミュニティに参加してください<br>La tua comunità ti aspetta</div>
+    <a href="#" class="btn cursor-target"><span>RICHIEDI ACCESSO&nbsp;&nbsp;—&nbsp;&nbsp;申請</span></a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">FSI</div>
+  <div class="footer-jp">
+    フェデラツィオーネ コミュニティ<br>
+    <span style="font-size:0.58rem;letter-spacing:0.5em;color:rgba(255,255,255,0.15)">ITALIA &times; 日本 &times; 2024</span>
+  </div>
+  <div class="footer-meta">
+    &copy; 2024 FSI<br>
+    TUTTI I DIRITTI RISERVATI<br>
+    <span style="color:rgba(166,125,67,0.38)">全権利留保</span>
+  </div>
+</footer>
+
+<script>
+// =============================================
+// FILM GRAIN
+// =============================================
+(function(){
+  const c=document.getElementById('grain');
+  const ctx=c.getContext('2d');
+  let W,H,f=0;
+  function resize(){W=c.width=window.innerWidth;H=c.height=window.innerHeight}
+  resize();window.addEventListener('resize',resize);
+  function grain(){
+    const img=ctx.createImageData(W,H);
+    const d=img.data;
+    for(let i=0;i<d.length;i+=4){
+      const v=Math.random()*255|0;
+      d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;
+    }
+    ctx.putImageData(img,0,0);
+  }
+  function loop(){if(f%2===0)grain();f++;requestAnimationFrame(loop)}
+  loop();
+})();
+
+// =============================================
+// JST CLOCK
+// =============================================
+function tickClock(){
+  const n=new Date();
+  const j=new Date(n.getTime()+(9*3600000));
+  const p=v=>String(v).padStart(2,'0');
+  document.getElementById('clock').textContent=`${p(j.getUTCHours())}:${p(j.getUTCMinutes())}:${p(j.getUTCSeconds())}`;
+}
+setInterval(tickClock,1000);tickClock();
+
+// =============================================
+// THREE.JS HOLOGRAM
+// =============================================
+(function(){
+  const canvas=document.getElementById('three-c');
+  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setClearColor(0x000000,0);
+
+  const scene=new THREE.Scene();
+  let W=window.innerWidth,H=window.innerHeight;
+  renderer.setSize(W,H);
+
+  const camera=new THREE.PerspectiveCamera(58,W/H,0.1,100);
+  camera.position.set(0,0.7,5.2);
+  camera.lookAt(0,0.1,0);
+
+  window.addEventListener('resize',()=>{
+    W=window.innerWidth;H=window.innerHeight;
+    renderer.setSize(W,H);camera.aspect=W/H;camera.updateProjectionMatrix();
+  });
+
+  // Build FSI canvas texture
+  const tc=document.createElement('canvas');
+  tc.width=2048;tc.height=1024;
+  const tx=tc.getContext('2d');
+
+  function buildTexture(){
+    tx.clearRect(0,0,2048,1024);
+    // glow layers
+    for(let i=0;i<6;i++){
+      tx.shadowColor=i%2===0?'#ad0013':'#a67d43';
+      tx.shadowBlur=90-i*10;
+      tx.font=`900 ${400+i*5}px serif`;
+      tx.textAlign='center';tx.textBaseline='middle';
+      tx.fillStyle=`rgba(255,255,255,${0.05+i*0.12})`;
+      tx.fillText('FSI',1024,512);
+    }
+    // sharp white
+    tx.shadowColor='rgba(255,255,255,0.9)';tx.shadowBlur=8;
+    tx.fillStyle='#ffffff';tx.font='900 420px serif';
+    tx.textAlign='center';tx.textBaseline='middle';
+    tx.fillText('FSI',1024,512);
+    // scan line bake
+    for(let y=0;y<1024;y+=4){
+      tx.fillStyle='rgba(0,0,0,0.12)';
+      tx.fillRect(0,y,2048,2);
+    }
+  }
+  buildTexture();
+  const fsiTex=new THREE.CanvasTexture(tc);
+
+  // Holographic ShaderMaterial
+  const mat=new THREE.ShaderMaterial({
+    uniforms:{uTime:{value:0},uTex:{value:fsiTex}},
+    vertexShader:`
+      uniform float uTime;
+      varying vec2 vUv;
+      void main(){
+        vUv=uv;
+        vec3 p=position;
+        p.z+=sin(p.x*3.2+uTime*2.1)*0.018;
+        p.z+=cos(p.y*2.6+uTime*1.6)*0.012;
+        gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);
+      }`,
+    fragmentShader:`
+      uniform float uTime;
+      uniform sampler2D uTex;
+      varying vec2 vUv;
+      void main(){
+        vec2 uv=vUv;
+        float ca=0.007;
+        float r=texture2D(uTex,uv+vec2(ca,0.0)).r;
+        float g=texture2D(uTex,uv).g;
+        float b=texture2D(uTex,uv-vec2(ca,0.0)).b;
+        float a=texture2D(uTex,uv).a;
+        vec3 col=vec3(r,g,b);
+        // dense scanlines
+        col+=sin(uv.y*280.0)*0.055*a;
+        // moving sweep band
+        float bp=fract(-uTime*0.28);
+        float band=smoothstep(0.03,0.0,abs(uv.y-bp)-0.018);
+        col+=band*vec3(0.8,0.52,0.22)*1.6;
+        // edge red glow
+        float ed=min(uv.x,min(1.0-uv.x,min(uv.y,1.0-uv.y)));
+        float eg=1.0-smoothstep(0.0,0.18,ed);
+        col+=eg*vec3(0.68,0.0,0.08)*0.7;
+        // holo tint shift
+        float hs=sin(uv.y*7.0+uTime*1.8)*0.5+0.5;
+        vec3 ht=mix(vec3(0.68,0.0,0.08),vec3(0.65,0.49,0.26),hs);
+        col=mix(col,col*ht*1.5,a*0.38);
+        // flicker
+        float fl=0.96+sin(uTime*57.0)*0.022+sin(uTime*19.0)*0.018;
+        col*=fl;
+        // vignette
+        vec2 vig=vUv*2.0-1.0;
+        col*=1.0-dot(vig*0.38,vig*0.38);
+        float alpha=a*0.88+band*0.14+eg*0.06;
+        gl_FragColor=vec4(col,alpha);
+      }`,
+    transparent:true,side:THREE.DoubleSide,
+    blending:THREE.AdditiveBlending,depthWrite:false
+  });
+
+  const fsiGeo=new THREE.PlaneGeometry(5.8,2.9,64,32);
+  const fsiMesh=new THREE.Mesh(fsiGeo,mat);
+  fsiMesh.rotation.x=-0.08;
+
+  const group=new THREE.Group();
+  group.add(fsiMesh);
+  scene.add(group);
+
+  // Base rings
+  const ringMat=new THREE.MeshBasicMaterial({color:0xad0013,transparent:true,opacity:0.55,blending:THREE.AdditiveBlending});
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(3.2,0.03,16,120),ringMat);
+  ring.rotation.x=Math.PI/2;ring.position.y=-2.1;scene.add(ring);
+
+  const ring2=new THREE.Mesh(new THREE.TorusGeometry(3.8,0.015,8,120),new THREE.MeshBasicMaterial({color:0xa67d43,transparent:true,opacity:0.28,blending:THREE.AdditiveBlending}));
+  ring2.rotation.x=Math.PI/2;ring2.position.y=-2.1;scene.add(ring2);
+
+  const ring3=new THREE.Mesh(new THREE.TorusGeometry(2.5,0.02,8,80),new THREE.MeshBasicMaterial({color:0xad0013,transparent:true,opacity:0.35,blending:THREE.AdditiveBlending}));
+  ring3.rotation.x=Math.PI/2;ring3.position.y=-2.1;scene.add(ring3);
+
+  // Grid floor
+  const grid=new THREE.GridHelper(22,35,0x1c0004,0x0f0f0d);
+  grid.position.y=-2.15;scene.add(grid);
+
+  // Light pillars
+  const pillarMat=new THREE.LineBasicMaterial({color:0xad0013,transparent:true,opacity:0.22,blending:THREE.AdditiveBlending});
+  for(let i=0;i<10;i++){
+    const a=(i/10)*Math.PI*2;
+    const px=Math.cos(a)*3.2,pz=Math.sin(a)*3.2;
+    const pts=[new THREE.Vector3(px,-2.1,pz),new THREE.Vector3(px*0.25,2.5,pz*0.25)];
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),pillarMat));
+  }
+
+  // Particles
+  const pCount=350;
+  const pPos=new Float32Array(pCount*3);
+  for(let i=0;i<pCount;i++){
+    const rad=2.2+Math.random()*4.5;
+    const th=Math.random()*Math.PI*2;
+    const ph=(Math.random()-0.5)*Math.PI;
+    pPos[i*3]=rad*Math.cos(th)*Math.cos(ph);
+    pPos[i*3+1]=rad*Math.sin(ph)*1.6;
+    pPos[i*3+2]=rad*Math.sin(th)*Math.cos(ph);
+  }
+  const pGeo=new THREE.BufferGeometry();
+  pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+  const pts=new THREE.Points(pGeo,new THREE.PointsMaterial({color:0xa67d43,size:0.045,transparent:true,opacity:0.55,blending:THREE.AdditiveBlending}));
+  scene.add(pts);
+
+  // Small red particles close in
+  const p2Count=80;
+  const p2Pos=new Float32Array(p2Count*3);
+  for(let i=0;i<p2Count;i++){
+    const rad=1.5+Math.random()*2;
+    const th=Math.random()*Math.PI*2;
+    const ph=(Math.random()-0.5)*Math.PI*0.8;
+    p2Pos[i*3]=rad*Math.cos(th)*Math.cos(ph);
+    p2Pos[i*3+1]=rad*Math.sin(ph);
+    p2Pos[i*3+2]=rad*Math.sin(th)*Math.cos(ph);
+  }
+  const p2Geo=new THREE.BufferGeometry();
+  p2Geo.setAttribute('position',new THREE.BufferAttribute(p2Pos,3));
+  scene.add(new THREE.Points(p2Geo,new THREE.PointsMaterial({color:0xad0013,size:0.06,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending})));
+
+  // Orbiting point lights
+  const pl1=new THREE.PointLight(0xad0013,3,8);
+  const pl2=new THREE.PointLight(0xa67d43,2,8);
+  scene.add(pl1);scene.add(pl2);
+
+  // Load web font then redraw texture
+  document.fonts.ready.then(()=>{
+    tx.clearRect(0,0,2048,1024);
+    for(let i=0;i<6;i++){
+      tx.shadowColor=i%2===0?'#ad0013':'#a67d43';
+      tx.shadowBlur=90-i*10;
+      tx.font=`900 ${400+i*5}px "Zen Old Mincho",serif`;
+      tx.textAlign='center';tx.textBaseline='middle';
+      tx.fillStyle=`rgba(255,255,255,${0.05+i*0.12})`;
+      tx.fillText('FSI',1024,512);
+    }
+    tx.shadowColor='rgba(255,255,255,0.9)';tx.shadowBlur=8;
+    tx.fillStyle='#ffffff';tx.font='900 420px "Zen Old Mincho",serif';
+    tx.textAlign='center';tx.textBaseline='middle';
+    tx.fillText('FSI',1024,512);
+    for(let y=0;y<1024;y+=4){tx.fillStyle='rgba(0,0,0,0.12)';tx.fillRect(0,y,2048,2)}
+    fsiTex.needsUpdate=true;
+  });
+
+  let t=0;
+  function animate(){
+    requestAnimationFrame(animate);
+    t+=0.007;
+    group.rotation.y=t*0.55;
+    group.rotation.z=Math.sin(t*0.22)*0.03;
+    ring.material.opacity=0.35+Math.sin(t*2.2)*0.2;
+    ring3.material.opacity=0.2+Math.sin(t*1.8+1)*0.15;
+    pts.rotation.y=t*0.04;
+    camera.position.y=0.7+Math.sin(t*0.28)*0.18;
+    pl1.position.set(Math.cos(t*0.55)*4.5,1.5,Math.sin(t*0.55)*4.5);
+    pl2.position.set(Math.cos(t*0.55+Math.PI)*4.5,0.5,Math.sin(t*0.55+Math.PI)*4.5);
+    mat.uniforms.uTime.value=t;
+    renderer.render(scene,camera);
+  }
+  animate();
+})();
+
+// =============================================
+// TARGET CURSOR
+// =============================================
+(function(){
+  if(window.innerWidth<=768)return;
+  const cur=document.getElementById('tc');
+  const corners=cur.querySelectorAll('.tc-corner');
+  let spinTl=null,activeTgt=null;
+  document.body.style.cursor='none';
+  gsap.set(cur,{xPercent:-50,yPercent:-50,x:window.innerWidth/2,y:window.innerHeight/2});
+  function makeSpin(){
+    if(spinTl)spinTl.kill();
+    spinTl=gsap.timeline({repeat:-1}).to(cur,{rotation:'+=360',duration:2.8,ease:'none'});
+  }
+  makeSpin();
+  window.addEventListener('mousemove',e=>{gsap.to(cur,{x:e.clientX,y:e.clientY,duration:0.1,ease:'power3.out'})});
+  window.addEventListener('mouseover',e=>{
+    let tgt=e.target;
+    while(tgt&&tgt!==document.body){if(tgt.classList.contains('cursor-target'))break;tgt=tgt.parentElement}
+    if(!tgt||!tgt.classList.contains('cursor-target'))return;
+    if(activeTgt===tgt)return;
+    activeTgt=tgt;
+    spinTl?.pause();gsap.set(cur,{rotation:0});
+    const rect=tgt.getBoundingClientRect();
+    const bw=3,cs=12;
+    const cx=gsap.getProperty(cur,'x'),cy=gsap.getProperty(cur,'y');
+    const pos=[
+      {x:rect.left-bw,y:rect.top-bw},
+      {x:rect.right+bw-cs,y:rect.top-bw},
+      {x:rect.right+bw-cs,y:rect.bottom+bw-cs},
+      {x:rect.left-bw,y:rect.bottom+bw-cs}
+    ];
+    Array.from(corners).forEach((c,i)=>gsap.to(c,{x:pos[i].x-cx,y:pos[i].y-cy,duration:0.22,ease:'power2.out'}));
+    tgt.addEventListener('mouseleave',()=>{
+      activeTgt=null;
+      const cs2=12;
+      const rest=[{x:-cs2*1.5,y:-cs2*1.5},{x:cs2*0.5,y:-cs2*1.5},{x:cs2*0.5,y:cs2*0.5},{x:-cs2*1.5,y:cs2*0.5}];
+      Array.from(corners).forEach((c,i)=>gsap.to(c,{...rest[i],duration:0.3,ease:'power3.out'}));
+      setTimeout(()=>{if(!activeTgt)makeSpin()},55);
+    },{once:true});
+  });
+  window.addEventListener('mousedown',()=>gsap.to(cur,{scale:0.85,duration:0.15}));
+  window.addEventListener('mouseup',()=>gsap.to(cur,{scale:1,duration:0.2}));
+})();
+
+// =============================================
+// GRADUAL BLUR
+// =============================================
+function gradualBlur(el,pos,strength,ht,n){
+  n=n||8;strength=strength||2;ht=ht||'5rem';
+  const w=document.createElement('div');
+  const dir={top:'to top',bottom:'to bottom'}[pos];
+  w.style.cssText=`position:absolute;${pos}:0;left:0;right:0;height:${ht};pointer-events:none;z-index:5;overflow:hidden;`;
+  for(let i=1;i<=n;i++){
+    const p=i/n;
+    const bv=(0.0625*(p*n+1)*strength).toFixed(3);
+    const p1=((i-1)/n*100).toFixed(1);
+    const p2=(i/n*100).toFixed(1);
+    const p3=Math.min((i+1)/n*100,100).toFixed(1);
+    const p4=Math.min((i+2)/n*100,100).toFixed(1);
+    const d=document.createElement('div');
+    d.style.cssText=`position:absolute;inset:0;-webkit-mask-image:linear-gradient(${dir},transparent ${p1}%,black ${p2}%,black ${p3}%,transparent ${p4}%);mask-image:linear-gradient(${dir},transparent ${p1}%,black ${p2}%,black ${p3}%,transparent ${p4}%);-webkit-backdrop-filter:blur(${bv}rem);backdrop-filter:blur(${bv}rem);`;
+    w.appendChild(d);
+  }
+  el.appendChild(w);
+}
+document.querySelectorAll('.gb').forEach(s=>{
+  gradualBlur(s,'top',1.2,'4.5rem',7);
+  gradualBlur(s,'bottom',1.2,'4.5rem',7);
+});
+
+// =============================================
+// SCROLL REVEAL
+// =============================================
+const ro=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')});
+},{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal,.reveal-left').forEach(el=>ro.observe(el));
+</script>
+</body>
+</html>
