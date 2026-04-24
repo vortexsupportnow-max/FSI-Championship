@@ -20,7 +20,7 @@
   --gold-dim:rgba(166,125,67,0.18);
   --blood-dim:rgba(173,0,19,0.15);
 }
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;overflow-x:hidden}
 body{background:var(--void);color:var(--text);font-family:'Noto Sans JP',sans-serif;font-weight:300;overflow-x:hidden;cursor:none}
 
 /* GRAIN */
@@ -156,6 +156,84 @@ footer{background:#0a0a09;padding:4rem 5rem;border-top:1px solid rgba(166,125,67
 
 /* GradualBlur host */
 .gb{position:relative;overflow:hidden}
+
+/* ============================================
+   RESPONSIVE — MOBILE / TABLET
+   ============================================ */
+/* Tablet: 2-col cards before collapsing to 1 col at 768px */
+@media (max-width:900px){
+  .card-grid{grid-template-columns:1fr 1fr}
+}
+
+@media (max-width:768px){
+  /* CURSOR — hide on touch */
+  .tc-wrap{display:none}
+  body{cursor:auto}
+
+  /* NAV */
+  nav{padding:1rem 1.2rem}
+  .nav-links{gap:1.4rem}
+  .nav-links a{font-size:0.62rem;letter-spacing:0.1em}
+  .nav-right{display:none}
+
+  /* HERO */
+  .h-line{display:none}
+  .hero-eyebrow{font-size:0.58rem;letter-spacing:0.35em;margin-bottom:1.2rem}
+  .hero-sub{font-size:0.52rem;letter-spacing:0.18em;padding:0 1rem}
+  /* jp-float and ev-day-num have inline font-size styles → !important needed to override */
+  .jp-float{font-size:4rem!important}
+  .cdeco{width:32px;height:32px}
+
+  /* SECTIONS */
+  .s-inner{padding:4.5rem 1.4rem}
+  .s-title{font-size:clamp(2rem,8vw,3.6rem)}
+
+  /* ABOUT */
+  .about-grid{grid-template-columns:1fr;gap:3rem}
+  .about-vis{height:240px}
+  .big-kanji{font-size:12rem}
+  .vis-stats{bottom:1.5rem;left:1.5rem;gap:2rem}
+  .stat-num{font-size:2rem}
+
+  /* COMMUNITY */
+  .card-grid{grid-template-columns:1fr}
+  .comm-head{margin-bottom:3rem}
+
+  /* EVENTS */
+  .ev-item{grid-template-columns:72px 1fr;gap:1.2rem;padding:1.6rem 0}
+  .ev-badge{display:none}
+  /* ev-day-num has inline font-size → !important needed to override */
+  .ev-day-num{font-size:1.4rem!important}
+
+  /* JOIN */
+  #join{padding:6rem 1.4rem}
+  .join-title{font-size:clamp(3rem,14vw,6rem)}
+  .join-jp{font-size:0.8rem;letter-spacing:0.25em;margin-bottom:3rem}
+  .btn{padding:1.1rem 2.5rem;letter-spacing:0.25em}
+
+  /* FOOTER */
+  footer{padding:2.5rem 1.4rem;flex-direction:column;align-items:center;text-align:center}
+  .footer-meta{text-align:center}
+}
+
+@media (max-width:480px){
+  /* NAV — hide links, keep logo + discord icon */
+  .nav-links li:not(:last-child){display:none}
+  .nav-links{gap:0}
+  .logo{font-size:1.5rem}
+
+  /* HERO floaters — reduce further (opacity not inline, no !important needed) */
+  .jp-float{opacity:0.06}
+
+  /* SECTIONS */
+  .s-inner{padding:3.5rem 1rem}
+
+  /* EVENTS */
+  .ev-item{grid-template-columns:60px 1fr;gap:0.8rem}
+
+  /* JOIN */
+  #join{padding:5rem 1rem}
+}
 </style>
 </head>
 <body>
